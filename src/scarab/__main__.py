@@ -31,13 +31,13 @@ def main():
                                      )
     parser.add_argument('command', nargs='?')
     input_cmd = sys.argv[1:2]
-    if input_cmd == ['-h']:
+    if input_cmd in (['-h'], ['--help']):
         input_cmd = ['help']
     args = parser.parse_args(input_cmd)
 
     if (not args.command) | (args.command == 'help'):
         sys.stderr.write(usage)
-        sys.exit(1)
+        sys.exit(0 if args.command == 'help' else 1)
 
     elif args.command not in commands:
         logger.error('Unrecognized command')

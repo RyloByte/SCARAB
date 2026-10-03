@@ -1,4 +1,4 @@
-q__author__ = 'Ryan J McLaughlin'
+__author__ = 'Ryan J McLaughlin'
 
 import argparse
 from argparse import RawTextHelpFormatter
@@ -37,6 +37,47 @@ class ScarabArgumentParser(argparse.ArgumentParser):
     def parse_args(self, args=None, namespace=None):
         args = super(ScarabArgumentParser, self).parse_args(args=args, namespace=namespace)
 
+        if hasattr(args, 'mg_file'):
+            for name in ('max_contig_len', 'min_len', 'kmer_size', 'nthreads'):
+                try:
+                    value = int(getattr(args, name))
+                except (ValueError, TypeError):
+                    self.error(f'{name} must be an integer')
+                if value < 1: self.error(f'{name} must be positive')
+                setattr(args, name, value)
+            try:
+                args.overlap_len = int(args.overlap_len)
+                args.jaccard = float(args.jaccard)
+            except (ValueError, TypeError):
+                self.error('overlap_len must be an integer and jaccard a number')
+            if not 0 <= args.overlap_len < args.max_contig_len:
+                self.error('overlap_len must be nonnegative and smaller than max_contig_len')
+            if args.min_len > args.max_contig_len:
+                self.error('min_len must not exceed max_contig_len')
+            if not 0 <= args.jaccard <= 1: self.error('jaccard must be between 0 and 1')
+            import re
+            if not re.fullmatch(r'[1-9][0-9]*[mMgG]', args.dedupe_memory):
+                self.error('dedupe_memory must be a positive integer followed by m or g')
+            if args.auto_params not in ('algo_defaults', 'majority_rule', 'best_cluster', 'best_match'):
+                self.error('Unknown autoopt method')
+            if sum(bool(getattr(args, x)) for x in ('vr_params','r_params','s_params','vs_params')) > 1:
+                self.error('Select only one relaxed/strict preset')
+            for name in ('denovo_min_clust','anchor_min_clust','denovo_min_samp','anchor_min_samp'):
+                value = getattr(args, name)
+                if value is not None:
+                    try: value = int(value)
+                    except ValueError: self.error(f'{name} must be an integer')
+                    if value < (2 if name.endswith('clust') else 1): self.error(f'{name} is too small')
+                    setattr(args, name, value)
+            if args.nu is not None:
+                try: args.nu = float(args.nu)
+                except ValueError: self.error('nu must be numeric')
+                if not 0 < args.nu <= 1: self.error('nu must be in (0,1]')
+            if args.gamma is not None and args.gamma not in ('scale','auto'):
+                try: args.gamma = float(args.gamma)
+                except ValueError: self.error('gamma must be scale, auto, or a positive number')
+                import math
+                if not math.isfinite(args.gamma) or args.gamma <= 0: self.error('gamma must be positive and finite')
         return args
 
     def add_recruit_args(self):
@@ -121,8 +162,10 @@ class ScarabArgumentParser(argparse.ArgumentParser):
                                      dest="nthreads",
                                      help="Number of threads [1]."
                                      )
+        self.miscellany.add_argument("--dedupe_memory", default="4g",
+                                     help="BBTools Java heap limit, e.g. 4g or 512m [4g].")
         self.miscellany.add_argument("--force", required=False, default=False,
                                      action="store_true",
-                                     help="Force SCARAB to run even if final recruits files exist [False]"
+                                     help="Preserve existing output in a sibling backup and start a fresh run [False]"
                                      )
         return

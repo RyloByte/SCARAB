@@ -48,8 +48,10 @@ def run_minhash_recruiter(sig_path, mhr_path, sag_sub_files, mg_sub_file, nthrea
 
             if len(minhash_pass_list) > 1:
                 minhash_df = pd.concat(minhash_pass_list)
-            else:
+            elif minhash_pass_list:
                 minhash_df = minhash_pass_list[0]
+            else:
+                minhash_df = pd.DataFrame(columns=['sag_id','r_contig_id','q_contig_id','jacc_sim'])
 
             minhash_df['jacc_sim'] = minhash_df['jacc_sim'].astype(float)
             minhash_recruit_df = minhash_df.copy()

@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 
 def run_combine_recruits(save_dirs_dict, mg_file, clusters,
-                         trusted_list, mode, threads
+                         trusted_list, mode, threads, dedupe_memory="4g"
                          ):
     denovo_clust_df = clusters[0]
     denovo_sv_path = save_dirs_dict['denovo']
@@ -19,7 +19,7 @@ def run_combine_recruits(save_dirs_dict, mg_file, clusters,
     mg_contigs = tuple([(r[0], r[1]) for r in mg_contigs_dict])
     mg_contigs_df = pd.DataFrame(mg_contigs, columns=['contig_id', 'seq'])
     trust_dict = {t[0]: t[1] for t in trusted_list}
-    
+
     # De Novo Bins
     denovo_set = list(set(denovo_clust_df['best_label']))
     for best_label in denovo_set:
@@ -93,9 +93,9 @@ def run_combine_recruits(save_dirs_dict, mg_file, clusters,
 
             # Use BBTools dedupe.sh to deduplicate the extend SAG file
             dedupe_fa = o_join(xpg_sv_path, t_id + '.hdbscan.xPG.fasta')
-            dedupe_cmd = ['dedupe.sh', 'in=' + concat_file, 'out=' + dedupe_fa,
+            dedupe_cmd = ['dedupe.sh', '-Xmx' + dedupe_memory, '-Xms256m', 'in=' + concat_file, 'out=' + dedupe_fa,
                           'threads=' + str(threads), 'minidentity=97', 'overwrite=true']
-            subprocess.run(dedupe_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            subprocess.run(dedupe_cmd, stdout=subprocess.DEVNULL, check=True)
         # OC-SVM Bins
         ocsvm_set = list(set(ocsvm_clust_df['best_label']))
         for best_label in ocsvm_set:
@@ -133,9 +133,9 @@ def run_combine_recruits(save_dirs_dict, mg_file, clusters,
 
             # Use BBTools dedupe.sh to deduplicate the extend SAG file
             dedupe_fa = o_join(xpg_sv_path, t_id + '.ocsvm.xPG.fasta')
-            dedupe_cmd = ['dedupe.sh', 'in=' + concat_file, 'out=' + dedupe_fa,
+            dedupe_cmd = ['dedupe.sh', '-Xmx' + dedupe_memory, '-Xms256m', 'in=' + concat_file, 'out=' + dedupe_fa,
                           'threads=' + str(threads), 'minidentity=97', 'overwrite=true']
-            subprocess.run(dedupe_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)    
+            subprocess.run(dedupe_cmd, stdout=subprocess.DEVNULL, check=True)
         # Combined Bins
         inter_set = list(set(inter_clust_df['best_label']))
         if isinstance(inter_clust_df, pd.DataFrame):
@@ -173,9 +173,9 @@ def run_combine_recruits(save_dirs_dict, mg_file, clusters,
 
                 # Use BBTools dedupe.sh to deduplicate the extend SAG file
                 dedupe_fa = o_join(xpg_sv_path, t_id + '.intersect.xPG.fasta')
-                dedupe_cmd = ['dedupe.sh', 'in=' + concat_file, 'out=' + dedupe_fa,
+                dedupe_cmd = ['dedupe.sh', '-Xmx' + dedupe_memory, '-Xms256m', 'in=' + concat_file, 'out=' + dedupe_fa,
                               'threads=' + str(threads), 'minidentity=97', 'overwrite=true']
-                subprocess.run(dedupe_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                subprocess.run(dedupe_cmd, stdout=subprocess.DEVNULL, check=True)
 
     # Clean up the directory
     logger.info('Cleaning up intermediate files.')

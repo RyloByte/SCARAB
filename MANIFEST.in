@@ -1,5 +1,6 @@
-include LICENSE requirements.txt README.md
-recursive-include src/scarab *
-#recursive-include tests/test-data *
-global-exclude tests *
-global-exclude .idea
+include LICENSE README.md requirements.txt pyproject.toml
+recursive-include src/scarab/configs *.tsv
+prune dev_utils
+prune docs
+prune tests
+global-exclude __pycache__ *.py[cod] .DS_Store

@@ -201,7 +201,13 @@ def info(sys_args):
 def recruit(sys_args):
     """Recruit environmental reads to reference contigs."""
     args = _parse_recruit_args(sys_args)
+    from scarab.validation import validate_inputs, run_guard
+    paths = validate_inputs(args)
+    with run_guard(args, paths):
+        _recruit(args)
 
+
+def _recruit(args):
     import scarab.logger as s_log
 
     s_log.prep_logging(os.path.join(args.save_path, 'SCARAB_log.txt'), verbosity=args.verbose)
@@ -234,6 +240,7 @@ def recruit(sys_args):
         trust_files,
         recruit_s.set,
         recruit_s.nthreads,
+        dedupe_memory=args.dedupe_memory,
     )
 
     return

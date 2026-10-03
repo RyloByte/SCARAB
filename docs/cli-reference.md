@@ -5,15 +5,17 @@ Generated from the public parser. Read [parameters](parameters.md) for effective
 ## recruit
 
 ```text
-usage: - [-v] [-h] -m MG_FILE -l MG_RAW_FILE_LIST -o SAVE_PATH [-s TRUST_PATH]
-         [--autoopt AUTO_PARAMS] [--very_relaxed] [--relaxed] [--strict]
-         [--very_strict] [--denovo_min_clust DENOVO_MIN_CLUST]
-         [--anchor_min_clust ANCHOR_MIN_CLUST]
-         [--denovo_min_samp DENOVO_MIN_SAMP]
-         [--anchor_min_samp ANCHOR_MIN_SAMP] [--nu NU] [--gamma GAMMA]
-         [--max_contig_len MAX_CONTIG_LEN] [--overlap_len OVERLAP_LEN]
-         [--min_len MIN_LEN] [--kmer_size KMER_SIZE] [--jaccard JACCARD]
-         [--pacbio] [-t NTHREADS] [--force]
+usage: scarab [-v] [-h] -m MG_FILE -l MG_RAW_FILE_LIST -o SAVE_PATH
+              [-s TRUST_PATH] [--autoopt AUTO_PARAMS] [--very_relaxed]
+              [--relaxed] [--strict] [--very_strict]
+              [--denovo_min_clust DENOVO_MIN_CLUST]
+              [--anchor_min_clust ANCHOR_MIN_CLUST]
+              [--denovo_min_samp DENOVO_MIN_SAMP]
+              [--anchor_min_samp ANCHOR_MIN_SAMP] [--nu NU] [--gamma GAMMA]
+              [--max_contig_len MAX_CONTIG_LEN] [--overlap_len OVERLAP_LEN]
+              [--min_len MIN_LEN] [--kmer_size KMER_SIZE] [--jaccard JACCARD]
+              [--pacbio] [-t NTHREADS] [--dedupe_memory DEDUPE_MEMORY]
+              [--force]
 
 Recruit environmental reads to reference contigs.
 
@@ -62,13 +64,15 @@ Miscellaneous options:
   -h, --help            Show this help message and exit
   -t NTHREADS, --num_threads NTHREADS
                         Number of threads [1].
+  --dedupe_memory DEDUPE_MEMORY
+                        BBTools Java heap limit, e.g. 4g or 512m [4g].
   --force               Preserve existing output in a sibling backup and start a fresh run [False]
 ```
 
 ## info
 
 ```text
-usage: - [-v] [-h]
+usage: scarab [-v] [-h]
 
 Return package and executable information.
 

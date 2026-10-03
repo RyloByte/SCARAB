@@ -26,6 +26,8 @@ With no preset and `algo_defaults`, the selected setting is `Default`: de novo a
 
 Explicit `--denovo_min_clust`, `--denovo_min_samp`, `--anchor_min_clust`, `--anchor_min_samp`, `--nu`, and `--gamma` values override the selected AutoOpt values. Minimum cluster sizes must be at least 2, minimum samples at least 1, nu in `(0,1]`, and gamma either `scale`, `auto`, or a positive finite number. Effective values are logged.
 
-`--jaccard` is a minimum threshold, so qualifying hits at or above the value are retained. Custom k-mer sizes use their corresponding MinHash results. Specify only one strictness preset; incompatible flags and invalid numeric ranges fail before analysis.
+`--jaccard` is a minimum threshold, so qualifying hits at or above the value are retained. The MinHash search collects both Jaccard and containment hits in the legacy `jacc_sim` column; a score of 1 can therefore indicate complete containment rather than whole-genome identity. Custom k-mer sizes use their corresponding MinHash results. Specify only one strictness preset; incompatible flags and invalid numeric ranges fail before analysis.
 
 `--force` preserves an existing output directory as a sibling named `OUTPUT.previous-UNIQUE_ID` and starts a fresh output. Source inputs must be outside the output tree. See [rerun behavior](resources.md).
+
+`--dedupe_memory` sets the BBTools Java heap limit (default `4g`), avoiding automatic allocation based on the entire host. It is not a whole-workflow memory limit.

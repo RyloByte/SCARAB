@@ -1,7 +1,9 @@
 import logging
 from os.path import isfile, basename, getsize
 from os.path import join as o_join
-from subprocess import Popen
+from subprocess import Popen, CalledProcessError
+from pathlib import Path
+from scarab.validation import read_id
 
 import pandas as pd
 
@@ -46,7 +48,7 @@ def procMetaGs(abr_path, mg_id, mg_raw_file_list, subcontig_path, pacbio, nthrea
     sam_list = []
     sorted_bam_list = []
     for line in raw_data:
-        raw_file_list = line.strip('\n').split('\t')
+        raw_file_list = [str(Path(p).expanduser().resolve()) for p in line.strip('\n').split('\t')]
         pe_id, mg_sam_out = runMiniMap2(abr_path, subcontig_path, mg_id, raw_file_list,
                                         pacbio, nthreads
                                         )
@@ -72,7 +74,7 @@ def runMiniMap2(abr_path, subcontig_path, mg_id, raw_file_list, pacbio, nthreads
     pe1 = raw_file_list[0]
     if isfile(pe1) == True:
         pe_basename = basename(pe1)
-        pe_id = pe_basename.split('.')[0]
+        pe_id = read_id(pe1)
         mg_sam_out = o_join(abr_path, pe_id + '.sam')
         try:  # if file exists but is empty
             sam_size = getsize(mg_sam_out)
@@ -81,17 +83,17 @@ def runMiniMap2(abr_path, subcontig_path, mg_id, raw_file_list, pacbio, nthreads
         if len(raw_file_list) == 2:
             logger.debug('Detected paired-end reads.')
             pe2 = raw_file_list[1]
-            mem_cmd = ['minimap2', '-ax', 'sr', '--split-prefix=tmp', '-t', str(nthreads), '-o', mg_sam_out,
+            mem_cmd = ['minimap2', '-ax', 'sr', '--split-prefix=' + str(Path(abr_path) / (pe_id + '.minimap-tmp')), '-t', str(nthreads), '-o', mg_sam_out,
                        o_join(subcontig_path, mg_id + '.subcontigs.fasta'), pe1, pe2
                        ]
         elif ((len(raw_file_list) < 2) & (pacbio == True)):
             logger.debug('Detected PacBio HiFi reads.')
-            mem_cmd = ['minimap2', '-ax', 'map-hifi', '--split-prefix=tmp', '-t', str(nthreads), '-o', mg_sam_out,
+            mem_cmd = ['minimap2', '-ax', 'map-hifi', '--split-prefix=' + str(Path(abr_path) / (pe_id + '.minimap-tmp')), '-t', str(nthreads), '-o', mg_sam_out,
                        o_join(subcontig_path, mg_id + '.subcontigs.fasta'), pe1
                        ]
         else:  # if the fastq is interleaved
             logger.debug('Detected interleaved reads.')
-            mem_cmd = ['minimap2', '-ax', 'sr', '--split-prefix=tmp', '-t', str(nthreads), '-o', mg_sam_out,
+            mem_cmd = ['minimap2', '-ax', 'sr', '--split-prefix=' + str(Path(abr_path) / (pe_id + '.minimap-tmp')), '-t', str(nthreads), '-o', mg_sam_out,
                        o_join(subcontig_path, mg_id + '.subcontigs.fasta'), pe1
                        ]
 
@@ -102,11 +104,14 @@ def runMiniMap2(abr_path, subcontig_path, mg_id, raw_file_list, pacbio, nthreads
                     with open(o_join(abr_path, pe_id + '.stdout.txt'), 'w') as stdout_file:
                         run_mem = Popen(mem_cmd, stdout=stdout_file, stderr=stderr_file)
                         run_mem.communicate()
+                        if run_mem.returncode:
+                            Path(mg_sam_out).unlink(missing_ok=True)
+                            raise CalledProcessError(run_mem.returncode, mem_cmd)
         else:
             logger.info('SAM file exists; skipping alignment.')
     else:
         logger.error('Raw FASTQ file(s) not found.')
-        sys.exit()  # TODO: replace this quick-fix with a real exception
+        raise FileNotFoundError(f'Raw FASTQ not found: {pe1}')
 
     return pe_id, mg_sam_out
 
@@ -116,10 +121,13 @@ def runSamTools(abr_path, pe_id, nthreads, mg_id, mg_sam_out):
     if isfile(mg_bam_out) == False:
         logger.info('Converting SAM to BAM with samtools.')
         bam_cmd = ['samtools', 'view', '-S', '-b', '-@', str(nthreads), mg_sam_out]
-        with open(mg_bam_out, 'w') as bam_file:
+        with open(mg_bam_out, 'wb') as bam_file:
             with open(o_join(abr_path, mg_id + '.stderr.txt'), 'w') as stderr_file:
                 run_bam = Popen(bam_cmd, stdout=bam_file, stderr=stderr_file)
                 run_bam.communicate()
+                if run_bam.returncode:
+                    Path(mg_bam_out).unlink(missing_ok=True)
+                    raise CalledProcessError(run_bam.returncode, bam_cmd)
     # sort bam file
     mg_sort_out = o_join(abr_path, pe_id + '.sorted.bam')
     if isfile(mg_sort_out) == False:
@@ -128,6 +136,9 @@ def runSamTools(abr_path, pe_id, nthreads, mg_id, mg_sam_out):
         with open(o_join(abr_path, mg_id + '.stderr.txt'), 'w') as stderr_file:
             run_sort = Popen(sort_cmd, stderr=stderr_file)
             run_sort.communicate()
+            if run_sort.returncode:
+                Path(mg_sort_out).unlink(missing_ok=True)
+                raise CalledProcessError(run_sort.returncode, sort_cmd)
 
     return mg_sort_out
 
@@ -147,6 +158,9 @@ def runMBAcov(abr_path, mg_id, sorted_bam_list):
         with open(o_join(abr_path, mg_id + '.stderr.txt'), 'w') as stderr_file:
             run_mba = Popen(mba_cmd, stderr=stderr_file)
             run_mba.communicate()
+            if run_mba.returncode:
+                Path(mg_mba_out).unlink(missing_ok=True)
+                raise CalledProcessError(run_mba.returncode, mba_cmd)
 
         mg_mba_df = pd.read_csv(mg_mba_out, header=0, sep='\t')
         mg_mba_df.rename(columns={'contigName': 'subcontig_id'}, inplace=True)

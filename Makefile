@@ -5,7 +5,7 @@ SHELL := /bin/bash
 
 CONDA ?= mamba
 CONDA_BUILD ?= conda
-CONDA_CHANNELS ?= -c conda-forge -c bioconda -c defaults
+CONDA_CHANNELS ?= -c conda-forge -c bioconda
 ENV_FILE ?= environment.yml
 ENV_NAME ?= scarab_cenv
 TEST_ENV ?= scarab_test
@@ -18,12 +18,12 @@ IMAGE ?= quay.io/hallamlab/scarab
 GIT_REF ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 IMAGE_TAG ?= $(subst /,-,$(GIT_REF))
 DOCKER ?= docker
-DOCKER_SUDO ?= sudo
+DOCKER_SUDO ?=
 APPTAINER ?= apptainer
 CONDA_BASE ?= $(shell conda info --base 2>/dev/null)
 CONDA_BLD_PATH ?= $(CONDA_BASE)/conda-bld
 BUILD_ENV ?= build-tools
-CONDA_RUN ?= conda run -n $(BUILD_ENV)
+CONDA_RUN ?= mamba run -n $(BUILD_ENV)
 ANACONDA_USER ?=
 
 .PHONY: help
@@ -32,11 +32,11 @@ help: ## Show available targets
 
 .PHONY: install-local
 install-local: ## Install SCARAB into the active Python environment
-	$(PYTHON) -m pip install .
+	$(PYTHON) -m pip install --no-deps --no-build-isolation .
 
 .PHONY: install-editable
 install-editable: ## Install SCARAB in editable mode into the active Python environment
-	$(PYTHON) -m pip install -e .
+	$(PYTHON) -m pip install --no-deps --no-build-isolation -e .
 
 .PHONY: env-create
 env-create: ## Create a conda environment from environment.yml
@@ -94,14 +94,13 @@ conda-upload: ## Upload the latest noarch build to Anaconda Cloud (ANACONDA_USER
 
 .PHONY: docker-build
 docker-build: ## Build the Docker image from the current git ref
-	$(DOCKER_SUDO) $(DOCKER) build --network=host \
-		--build-arg git_branch=$(IMAGE_TAG) \
+	$(DOCKER_SUDO) $(DOCKER) build \
 		-t $(IMAGE):$(IMAGE_TAG) .
 
 .PHONY: docker-run
 docker-run: ## Run the Docker image with the repo mounted at /cwd
-	$(DOCKER_SUDO) $(DOCKER) run -it --network=host --rm \
-		-v $(CURDIR):/cwd \
+	$(DOCKER_SUDO) $(DOCKER) run -it --rm \
+		-v "$(CURDIR):/cwd" -w /cwd \
 		$(IMAGE):$(IMAGE_TAG) bash
 
 .PHONY: apptainer-build
@@ -111,3 +110,14 @@ apptainer-build: ## Build an Apptainer image from the Docker image
 .PHONY: apptainer-run
 apptainer-run: ## Run the Apptainer image
 	$(APPTAINER) exec $(PKG_NAME)-$(IMAGE_TAG).sif bash
+
+.PHONY: test packaging-check apptainer-build-local
+test: ## Run regression tests in the active SCARAB environment
+	$(PYTHON) -m unittest discover -s tests -p 'test_*.py'
+
+packaging-check: ## Check generated dependency specifications
+	$(PYTHON) scripts/render_packaging.py --check
+
+apptainer-build-local: ## Convert a locally built Docker image without Quay
+	$(DOCKER_SUDO) $(DOCKER) save $(IMAGE):$(IMAGE_TAG) -o scarab-image.tar
+	$(APPTAINER) build $(PKG_NAME)-$(IMAGE_TAG).sif docker-archive://scarab-image.tar

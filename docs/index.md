@@ -1,6 +1,6 @@
 # SCARAB
 
-**Documentation preview for SCARAB 1.0.0:** installation updates and runtime fixes described here are still being validated. Anaconda and Quay packages have not been published; this documentation branch is for review.
+**SCARAB 1.0.0 release candidate:** the source installation and public reviewer demo have been tested. Anaconda and Quay publication remains pending; use the source route until registry packages are available.
 
 SCARAB recruits metagenomic reads using single-cell amplified genomes as references.
 

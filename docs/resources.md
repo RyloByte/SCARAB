@@ -4,6 +4,8 @@
 
 `scarab recruit` is a Python controller executing recruitment stages in sequence. `--num_threads` is passed to supported tools and parallel operations. It is not a total-memory limit, and some numerical libraries may use their own thread pools. Memory use grows with the number of sequence windows, abundance samples, and embedding/clustering matrices. Measure a representative assembly before sizing a large run.
 
+BBTools deduplication uses a 4 GB Java heap by default. Set `--dedupe_memory 8g` (or a value in `m`) for larger xPGs. This bounds that subprocess heap only; Python matrices, other tools, and Java overhead need additional memory.
+
 ## Slurm
 
 SCARAB has no native Nextflow/Slurm submission interface. Submit the whole command as one cluster job and request resources for that command. For example, adapt this submission script to your cluster:
@@ -35,4 +37,4 @@ Changed or unrecorded inputs/settings and interrupted/failed runs require a fres
 scarab recruit -m assembly.fasta -l read_list.txt -s SAG -o results -t 4 --force
 ```
 
-Independent assemblies need separate output and working directories; external tools can use relative temporary prefixes. CPU thread count and log verbosity are excluded from the analysis-settings comparison, but changing them can affect timing and should be recorded in performance benchmarks.
+Independent assemblies need separate output directories. Minimap2 temporary prefixes are scoped to the output directory. CPU thread count and log verbosity are excluded from the analysis-settings comparison, but changing them can affect timing and should be recorded in performance benchmarks.

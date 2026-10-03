@@ -1,6 +1,6 @@
 # Installation
 
-**Release preparation:** the routes below describe the planned 1.0.0 installation. Package and container publication, namespace configuration, and final installation testing are pending. Do not use the registry commands until the release is available.
+**Release preparation:** Anaconda and Quay publication and namespace configuration are pending. The source route is available for testing; registry commands apply once the release is published. Container testing is provided by the release-candidate workflow.
 
 SCARAB supports Linux. All installation routes provide the same `scarab` CLI and use the dependency versions recorded in this repository. The supported runtime is Python 3.10; the scientific dependency versions are kept consistent across Python, Mamba, Conda recipes, and the container.
 

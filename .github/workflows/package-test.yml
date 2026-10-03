@@ -1,51 +1,48 @@
-# This workflow will install Python dependencies, run tests and lint with a variety of Python versions
-
-name: tests
-
+name: Package and reviewer tests
 on:
+  pull_request:
   push:
-    tags:
-    - 'v*'
-
+    branches: [refactor, main, 'docs/user-guide']
+  workflow_dispatch:
+permissions:
+  contents: read
 jobs:
-  build:
-
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ ubuntu-latest, macos-latest ]
-        python-version: [3.5, 3.6, 3.7, 3.8]
-        exclude:
-          - os: macos-latest
-            python-version: 3.8
-
-    env:
-      BWA_VERSION: "0.7.17"
-
+  reviewer:
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
+      - uses: actions/checkout@v4
+      - uses: mamba-org/setup-micromamba@v2
         with:
-          python-version: ${{ matrix.python-version }}
-      - name: Install Python dependencies
+          environment-file: environment.yml
+          cache-environment: true
+      - name: Install and test
+        shell: bash -el {0}
         run: |
-          python -m pip install --upgrade pip
-          python -m pip install flake8 pytest codecov
-          if [ -f requirements.txt ]; then python -m pip install -r requirements.txt; fi
-      - name: Lint with flake8
+          python -m pip install --no-deps --no-build-isolation .
+          python scripts/render_packaging.py --check
+          python -m unittest discover -s tests -p 'test_*.py'
+          scarab info
+          scarab recruit --help
+      - name: Run the public reviewer demo
+        shell: bash -el {0}
         run: |
-          # stop the build if there are Python syntax errors or undefined names
-          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-          # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-      - name: Install external dependencies
-        if: ${{ matrix.os != 'macos-latest' }}
-        run: |
-          wget -O v${BWA_VERSION}.tar.gz https://github.com/lh3/bwa/archive/v${BWA_VERSION}.tar.gz;
-          tar -xzf v${BWA_VERSION}.tar.gz && cd bwa-${BWA_VERSION}/ && make && rm *.o && cd -;
-          sudo cp bwa-${BWA_VERSION}/bwa /usr/local/bin/bwa && rm v${BWA_VERSION}.tar.gz;
-      - name: Run pytest
-        if: ${{ matrix.os != 'macos-latest' }}
-        run: |
-          pytest -v
+          python scripts/prepare_reviewer.py --output "$RUNNER_TEMP/scarab-reviewer"
+          cd "$RUNNER_TEMP/scarab-reviewer/demo"
+          scarab recruit -m k12.gold_assembly.fasta -l read_list.txt -s SAG -o SCARAB_out -t 2
+          python "$GITHUB_WORKSPACE/scripts/validate_reviewer.py" --dataset . --output SCARAB_out
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: reviewer-logs
+          path: |
+            ${{ runner.temp }}/scarab-reviewer/demo/SCARAB_out/SCARAB_log.txt
+            ${{ runner.temp }}/scarab-reviewer/demo/SCARAB_out/scarab_*.json
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install -r docs/requirements.txt
+      - run: python -m sphinx -W --keep-going -b html docs _build/html

@@ -107,15 +107,20 @@ def recruitOCSVM(p):
 
     return sag_id, major_df
 
+def trusted_hits(minhash_dict, jaccard):
+    mh_trusted_df = pd.concat(list(minhash_dict.values()), ignore_index=True) if minhash_dict else pd.DataFrame(columns=['sag_id','q_contig_id','jacc_sim'])
+    mh_trusted_df = mh_trusted_df.rename(columns={'q_contig_id': 'contig_id'})
+    mh_best_df = mh_trusted_df.loc[mh_trusted_df['jacc_sim'] >= jaccard].copy()
+    return mh_trusted_df, mh_best_df
+
+
 def runClusterer(mg_id, tmp_path, clst_path, cov_file, tetra_file, minhash_dict,
                  denovo_min_clust, denovo_min_samp, anchor_min_clust, anchor_min_samp,
                  nu, gamma, jaccard, nthreads
                  ):  # TODO: need to add multithreading where ever possible
     # Get the MinHash recruits
-    if minhash_dict:
-        mh_trusted_df = minhash_dict[201]
-        mh_trusted_df.rename(columns={'q_contig_id': 'contig_id'}, inplace=True)
-        mh_best_df = mh_trusted_df.query(f'jacc_sim == {jaccard}')
+    mh_trusted_df, mh_best_df = trusted_hits(minhash_dict, jaccard)
+    trust_recruit_df = ocsvm_clust_df = False
     # Convert CovM to UMAP feature table
     set_init = 'spectral'
     merged_emb = Path(o_join(tmp_path, mg_id + '.merged_emb.tsv'))
@@ -125,7 +130,7 @@ def runClusterer(mg_id, tmp_path, clst_path, cov_file, tetra_file, minhash_dict,
         cov_df = pd.read_csv(cov_file, header=0, sep='\t', index_col='subcontig_id')
         cov_df['contig_id'] = [x.rsplit('_', 1)[0] for x in cov_df.index]
         mh_contig_list = list(mh_trusted_df['contig_id'].unique())
-        mh_cov_df = cov_df.copy().query('contig_id == @mh_contig_list')
+        mh_cov_df = cov_df.copy().query('contig_id == @mh_contig_list') if mh_contig_list else cov_df.copy()
         del mh_cov_df['contig_id']
         n_neighbors = 20
         # COV sometimes crashes when init='spectral', trying higher NN value for 2-stage DR
@@ -174,7 +179,7 @@ def runClusterer(mg_id, tmp_path, clst_path, cov_file, tetra_file, minhash_dict,
         tetra_df = pd.read_csv(tetra_file, header=0, sep='\t', index_col='contig_id')
         tetra_df['contig_id'] = [x.rsplit('_', 1)[0] for x in tetra_df.index]
         mh_contig_list = list(mh_trusted_df['contig_id'].unique())
-        mh_tetra_df = tetra_df.copy().query('contig_id == @mh_contig_list')
+        mh_tetra_df = tetra_df.copy().query('contig_id == @mh_contig_list') if mh_contig_list else tetra_df.copy()
         del mh_tetra_df['contig_id']
         #n_neighbors = 10
         try:
@@ -274,8 +279,7 @@ def runClusterer(mg_id, tmp_path, clst_path, cov_file, tetra_file, minhash_dict,
         denovo_clusters_df = cluster_ns_df.query('best_label != -1')  # 'best_prob >= 0.51')
         noise_df = cluster_ns_df.query('best_label == -1')  # 'best_prob < 0.51')
         if denovo_clusters_df.empty:
-            #  TODO: fix this or print a warning message to user :)
-            denovo_clusters_df = noise_df.copy()
+            logger.warning('No supported de novo clusters; all contigs remain in the noise table.')
         denovo_clusters_df.to_csv(denovo_out_file, sep='\t', index=False)
         noise_df.to_csv(noise_out_file, sep='\t', index=False)
     else:
@@ -286,7 +290,7 @@ def runClusterer(mg_id, tmp_path, clst_path, cov_file, tetra_file, minhash_dict,
     ######################################
     ########## ANCHORED BINNING ##########
     ######################################
-    if minhash_dict:
+    if not mh_best_df.empty:
         # Run HDSCAN ANCHORED
         trust_anchors_file = Path(o_join(clst_path, mg_id + '.hdbscan_anchors.tsv'))
         if not trust_anchors_file.is_file():
@@ -354,7 +358,7 @@ def runClusterer(mg_id, tmp_path, clst_path, cov_file, tetra_file, minhash_dict,
             if label_max_list:
                 sag_label_df = pd.concat(label_max_list)
             else:
-                sag_label_df = pd.DataFrame(columns=['sag_id', 'contig_id', 'anch_cnt'])
+                sag_label_df = pd.DataFrame(columns=['sag_id', 'contig_id', 'anch_cnt', 'best_label'])
             if contig_max_list:
                 sag_contig_df = pd.concat(contig_max_list)
             else:
@@ -382,7 +386,7 @@ def runClusterer(mg_id, tmp_path, clst_path, cov_file, tetra_file, minhash_dict,
                 if sag_id in hdbscan_label_dict.keys():
                     sub_label_df = hdbscan_label_dict[sag_id][trust_cols]
                     subs_list.append(sub_label_df)
-                if sag_id in sag_contig_df['sag_id']:
+                if sag_id in sag_contig_df['sag_id'].values:
                     sub_contig_df = sag_contig_df.query('sag_id == @sag_id')[trust_cols]
                     subs_list.append(sub_contig_df)
                 if len(subs_list) > 1:
@@ -398,10 +402,10 @@ def runClusterer(mg_id, tmp_path, clst_path, cov_file, tetra_file, minhash_dict,
             logger.info('HDBSCAN anchored clusters already exist; skipping.')
             trust_recruit_df = pd.read_csv(hdbscan_out_file, sep='\t', header=0)
     else:
-        logger.info('No trusted contigs provided.')
+        logger.info('No trusted matches meet the minimum similarity; skipping anchored recruitment.')
         trust_recruit_df = False
 
-    if minhash_dict:
+    if not mh_best_df.empty:
         # Run OC-SVM recruiting
         ocsvm_out_file = Path(o_join(clst_path, mg_id + '.ocsvm_clusters.tsv'))
         if not ocsvm_out_file.is_file():
@@ -424,7 +428,7 @@ def runClusterer(mg_id, tmp_path, clst_path, cov_file, tetra_file, minhash_dict,
                     ocsvm_recruit_dict[sag_id] = ocsvm_recruits
             pool.close()
             pool.join()
-            ocsvm_contig_df = pd.concat(ocsvm_recruit_list)
+            ocsvm_contig_df = pd.concat(ocsvm_recruit_list) if ocsvm_recruit_list else pd.DataFrame(columns=['sag_id', 'contig_id', 'percent'])
             ocsvm_contig_best_df = ocsvm_contig_df.sort_values(by='percent', ascending=False
                                                                ).drop_duplicates(subset='contig_id')
             logger.info('Compiling OC-SVM recruits.')
@@ -457,7 +461,7 @@ def runClusterer(mg_id, tmp_path, clst_path, cov_file, tetra_file, minhash_dict,
     else:
         ocsvm_clust_df = False
 
-    if minhash_dict:
+    if not mh_best_df.empty:
         # Find intersection of HDBSCAN and OC-SVM
         inter_out_file = Path(o_join(clst_path, mg_id + '.inter_clusters.tsv'))
         if not inter_out_file.is_file():

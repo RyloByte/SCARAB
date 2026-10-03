@@ -12,8 +12,6 @@ CLASSIFIERS = [
     "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
     "Natural Language :: English",
     "Operating System :: POSIX :: Linux",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Topic :: Scientific/Engineering :: Bio-Informatics",
 ]
@@ -39,9 +37,9 @@ SETUP_METADATA = \
         "long_description_content_type": "text/markdown",
         "author": "Ryan McLaughlin, Connor Morgan-Lang",
         "author_email": "mclaughlinr2@gmail.com",
-        "url": "https://github.com/hallamlab/scarab",
+        "url": "https://github.com/RyloByte/SCARAB",
         "license": "GPL-3.0",
-        "python_requires": ">=3.8",
+        "python_requires": ">=3.10,<3.11",
         "include_package_data": True,
         "package_dir": {'': 'src'},  # Necessary for proper importing
         "packages": pks,
@@ -49,21 +47,8 @@ SETUP_METADATA = \
             'scarab': ['configs/*']},
         "entry_points": {'console_scripts': ['scarab = scarab.__main__:main']},
         "classifiers": CLASSIFIERS,
-        "install_requires": [
-            "numpy==1.24.4",
-            "pandas==2.0.3",
-            "scikit-learn==1.3.0",
-            "umap-learn==0.5.3",
-            "hdbscan==0.8.30",
-            "sourmash==4.8.2",
-            "pyfastx==1.1.0",
-            "scikit-bio==0.5.8",
-            "tqdm",
-            "six==1.16.0",
-            "screed==1.1.2",
-            "scipy==1.11.1",
-            "numba==0.57.1",
-        ]
+        "install_requires": [line.strip() for line in (Path(__file__).parent / "requirements.txt").read_text().splitlines()
+                             if line.strip() and not line.startswith("#")],
     }
 
 setup(**SETUP_METADATA)

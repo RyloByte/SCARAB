@@ -73,7 +73,7 @@ def get_SAGs(sag_path):
         sag_list = [os.path.join(sag_path, f) for f in
                     os.listdir(sag_path) if ((f.split('.')[-1] == 'fasta' or
                                               f.split('.')[-1] == 'fna' or
-                                              f.split('.')[-1] == 'fa') and 'Sample' not in f)
+                                              f.split('.')[-1] == 'fa') )
                     ]
         logger.info('Found %s trusted contig files.', len(sag_list))
 
@@ -81,7 +81,7 @@ def get_SAGs(sag_path):
         logger.info('Processing trusted contig file %s.', os.path.basename(sag_path))
         sag_list = [sag_path]
     else:
-        pass  # TODO: add error exception for bad file path
+        raise ValueError(f'Trusted reference path not found: {sag_path}')
 
     return sag_list
 
@@ -296,6 +296,11 @@ def set_clust_params(denovo_min_clust, denovo_min_samp, anchor_min_clust,
     logger.info('Running AutoOpt to find optimal hyperparameters.')
     clust_match_df = calc_entropy(working_dir, [abund_file])
     autoopt_method, autoopt_setting, autoopt_params = run_param_match(working_dir, a, vr, r, s, vs)  # TODO: draw from dev_utils/param_matching.py
+    overrides = {'d_min_clust': denovo_min_clust, 'd_min_samp': denovo_min_samp,
+                 'a_min_clust': anchor_min_clust, 'a_min_samp': anchor_min_samp,
+                 'nu': nu, 'gamma': gamma}
+    autoopt_params = dict(autoopt_params)
+    autoopt_params.update({k:v for k,v in overrides.items() if v is not None})
     logger.info('AutoOpt method: %s', autoopt_method)
     logger.info(
         'AutoOpt params: setting=%s, denovo_min_clust=%s, denovo_min_samp=%s, '

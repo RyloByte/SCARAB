@@ -11,3 +11,4 @@ numba==0.57.1
 scipy==1.11.1
 screed==1.1.2
 six==1.16.0
+setuptools>=68,<81

@@ -1,0 +1,18 @@
+{
+  "source": "https://drive.google.com/file/d/1yUoPpoNRl6-CZHkRoUYDbikBJk4yC-3V/view",
+  "archive_sha256": "1339ebbce24aef8633e4163174337d53b6e202d22e1e1bd5eb74abc300027175",
+  "description": "Historical public SCARAB E. coli K12 demo; three paired libraries and two trusted genomes. Inputs stay external to the repository.",
+  "files": {
+    "SAG/ecoli-COLI-K12.3578.fasta": "011b9d401ecf1a5beccfc7e4c411bb2fe5cba8c33b8a47db29cfa0472cc84e13",
+    "SAG/ecoli-COLI-K12.8710.fasta": "3b134e78dd757c55e12e273f1700e80ca9240bfd71790d14e72dcbe7bcf6b9c2",
+    "docker_read_list.txt": "95e9e3a3c3c8b4c7af01ee5e72bb83c24dae9789cd06997df620f213c8729d2d",
+    "fastq/k12_A_R1.fastq.gz": "f419832975fac801fc5f8fbac9671aa58a6c2a45290e1fe50d95e893622dd007",
+    "fastq/k12_A_R2.fastq.gz": "72f3afa9ee0b8fb4b2dd76e8ebc8b5d9e4d59398ee1ddbb3c3f01ce6c4e9ad4b",
+    "fastq/k12_B_R1.fastq.gz": "3b4e05e42e3e402caa4d9718147827158dfb535a2fd77f02661fbca943804c21",
+    "fastq/k12_B_R2.fastq.gz": "47975813dbdf12bba9b2fb93e4d8a1757d47839a0963bd5179bebf23e89c7c1a",
+    "fastq/k12_C_R1.fastq.gz": "f1305d57a32e7e2953b2fcf864e595bdafc700e2ce98bc079a5597082cd84e1d",
+    "fastq/k12_C_R2.fastq.gz": "79ae2bf6e0d9ca4213a16e28aafa75d0737a6770dfcde18402a451deebe28365",
+    "k12.gold_assembly.fasta": "a6f911109d4532828301359a39f3208ada19dcd689982ef1d811cd23bd67700f",
+    "read_list.txt": "ebea3a2d11bd93823bb249b82b2d4d8ca0b0224b2d85a797e3216fcc3720b6fe"
+  }
+}
