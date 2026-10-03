@@ -1,110 +1,42 @@
 # SCARAB
 
+**1.0.0 documentation preview:** package and runtime updates are still being validated. Anaconda and Quay publication is pending; registry commands below apply once the release is available.
+
 SCARAB recruits metagenomic reads using single-cell amplified genomes as references.
 
-Documentation and tutorials: [Wiki](https://github.com/RyloByte/scarab/wiki)
+Its recruitment workflow combines assembly composition, read-coverage profiles, and optional trusted-genome anchors to recover metagenomic contigs and extended partial genomes (xPGs).
 
-## Install
+[User guide](docs/index.md) · [Installation](docs/installation.md) · [CLI reference](docs/cli-reference.md) · [Issues and feature requests](https://github.com/RyloByte/SCARAB/issues)
 
-SCARAB is developed and tested on Linux only. A conda distribution is required (Mambaforge, Miniconda, or Anaconda).
+## Quick start
 
-Clone the repo:
+Install a released package with Mamba:
 
-```sh
-git clone https://github.com/RyloByte/scarab.git
-cd scarab
+```bash
+mamba create -n scarab -c conda-forge -c bioconda -c hallamlab scarab
+mamba activate scarab
+scarab recruit --help
 ```
 
-Create the conda environment and install SCARAB:
+See [installation](docs/installation.md) for Docker, Apptainer, and installation from GitHub, including how to test a source build before release. Package and container versions should match the code you intend to run.
 
-```sh
-make install-scarabenv
-conda activate scarab_cenv
-make install-scarab
-```
+With the [demo dataset](docs/reviewer-test.md) downloaded and extracted:
 
-Or without make:
-
-```sh
-conda env create -f environment.yml
-conda activate scarab_cenv
-pip install .
-```
-
-## Test
-
-Download the demo dataset: https://drive.google.com/file/d/1yUoPpoNRl6-CZHkRoUYDbikBJk4yC-3V/view?usp=sharing
-
-```sh
-unzip demo.zip
+```bash
 cd demo
-scarab recruit -m k12.gold_assembly.fasta -l read_list.txt -o SCARAB_out -s SAG
+scarab recruit -m k12.gold_assembly.fasta -l read_list.txt   -s SAG -o SCARAB_out -t 4
 ```
 
-The result is a new directory named `SCARAB_out` that contains all intermediate and final outputs.
+For your own data, provide an assembly FASTA, a text list of FASTQ paths, and optionally trusted-reference FASTAs. Follow the [first-run walkthrough](docs/quickstart.md) and [input format guide](docs/inputs.md).
 
-## Containers
+## Workflow
 
-Container images are published to Quay.io:
+[![SCARAB workflow](docs/assets/workflow-main.svg)](docs/assets/workflow-main.svg)
 
-```sh
-# Docker (needs sudo access)
-sudo docker pull quay.io/hallamlab/scarab
-sudo docker run -it --network=host --rm -v ./:/cwd quay.io/hallamlab/scarab:latest \
-  scarab recruit -m cwd/k12.gold_assembly.fasta -l cwd/docker_read_list.txt -o cwd/SCARAB_out -s cwd/SAG
+[Detailed workflow and data flow](docs/workflow.md) · [SVG](docs/assets/workflow-main.svg) · [PDF](docs/assets/workflow-main.pdf)
 
-# Apptainer
-apptainer pull docker://quay.io/hallamlab/scarab
-apptainer exec scarab_latest.sif scarab recruit -m k12.gold_assembly.fasta -l read_list.txt -o SCARAB_out -s SAG
-```
+## Full documentation
 
-Build locally:
+The [user guide](docs/index.md) covers [installation](docs/installation.md), the [reviewer test](docs/reviewer-test.md), [parameters](docs/parameters.md), [outputs](docs/outputs.md), and [HPC execution and reruns](docs/resources.md).
 
-```sh
-make docker-build
-make apptainer-build
-```
-
-
-## Developer workflow
-
-Local conda build from the working tree (no version bump required):
-
-```sh
-make conda-build-local
-# Faster build (requires boa in the build-tools env)
-make conda-mambabuild-local
-# Use a different tools env if needed
-# BUILD_ENV=build-tools make conda-mambabuild-local
-# If you built from a tools env, point to its conda-bld
-# CONDA_BLD_PATH="/home/ryan/mambaforge/envs/build-tools/conda-bld" make conda-test-env
-# You can override channels if needed
-# CONDA_CHANNELS="-c conda-forge -c bioconda" make conda-mambabuild-local
-# Use a different tools env if needed
-# BUILD_ENV=build-tools make conda-mambabuild-local
-make conda-test-env
-conda activate scarab_test
-scarab info
-```
-
-Release checklist (tagged source build):
-
-```sh
-# 1) Update version, tag, and push
-# 2) Update conda-recipe/meta.yaml source URL + sha256
-make conda-build-release
-```
-
-Upload to Anaconda Cloud:
-
-```sh
-ANACONDA_USER=yourname make conda-upload
-```
-
-Release automation (GitHub Actions):
-
-```sh
-# Run the release workflow manually from GitHub Actions
-# or using the GitHub CLI
-# gh workflow run release.yml -f version=0.0.2
-```
+Documentation source lives in `docs/`. [Report issues or request features](https://github.com/RyloByte/SCARAB/issues).

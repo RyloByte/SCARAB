@@ -29,3 +29,7 @@ dev_utils/genome_qc/config.yaml
 
 # Packaging metadata
 /*.egg-info
+
+# Public documentation builds (never stage local manuscript material)
+/_build/
+/docs/_build/

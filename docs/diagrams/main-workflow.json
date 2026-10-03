@@ -1,0 +1,40 @@
+{
+  "title": "SCARAB",
+  "rows": [
+    [
+      "Sequence and read inputs",
+      "Assembly + FASTQs + optional trusted genomes",
+      "One metagenome assembly; tab-separated read list; optional SAG/reference FASTAs."
+    ],
+    [
+      "Sequence windows and anchors",
+      "Subcontigs + sourmash MinHash",
+      "Length filtering and overlapping windows; trusted sequence matches where available."
+    ],
+    [
+      "Abundance and composition",
+      "Read coverage + tetranucleotide frequencies",
+      "minimap2 \u2192 SAMtools \u2192 MetaBAT depth summary; standardized feature matrices."
+    ],
+    [
+      "Parameter selection",
+      "Abundance entropy and AutoOpt",
+      "Bundled reference tables select algorithm defaults or calibrated parameter sets."
+    ],
+    [
+      "Recruitment and clustering",
+      "UMAP, HDBSCAN, and one-class SVM",
+      "De novo bins; trusted-anchor recruitment; combination/intersection of evidence."
+    ],
+    [
+      "Contig and xPG products",
+      "Original-contig FASTAs + extended partial genomes",
+      "Compile assignments; combine trusted sequence with recruits; BBTools deduplication."
+    ],
+    [
+      "Review and downstream analysis",
+      "Logs, assignment tables, and FASTA outputs",
+      "Validate genome quality independently; retain input and parameter provenance."
+    ]
+  ]
+}
